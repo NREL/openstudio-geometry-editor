@@ -280,15 +280,20 @@ const helpers = {
 	},
 
     // ************************************ PROJECTIONS ************************************ //
-    /*
-     * return the set of saved vertices directly on an edge, not including edge endpoints
-     */
-  splittingVerticesForEdgeId(edge_id, geometry, spacing) {
-    const edge = geometry.edges.find(e => e.id === edge_id),
-      edgeV1 = this.vertexForId(edge.v1, geometry),
+  /**
+   * Return the set of saved vertices directly on an edge, not including edge endpoints
+   *
+   * @param {*} edge Edge to check against vertices for a collision
+   * @param {*} geometry 
+   * @param {*} spacing
+   * @returns 
+   */
+  splittingVerticesForEdgeId(edge, geometry, spacing) {
+    const edgeV1 = this.vertexForId(edge.v1, geometry),
       edgeV2 = this.vertexForId(edge.v2, geometry);
       // look up all vertices touching the edge, ignoring the edge's endpoints
-    const verticesToSplit = geometry.vertices.filter((vertex) => {
+    
+    return geometry.vertices.filter((vertex) => {
       const
         vertexIsEndpointById = edge.v1 === vertex.id || edge.v2 === vertex.id,
         vertexIsLeftEndpointByValue = edgeV1.x === vertex.x && edgeV1.y === vertex.y,
@@ -307,7 +312,6 @@ const helpers = {
       const shouldSplit = distBetween <= spacing / 20;
       return shouldSplit;
     });
-    return verticesToSplit;
   },
 
   projectionOfPointToLine,

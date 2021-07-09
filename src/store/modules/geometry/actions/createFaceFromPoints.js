@@ -55,7 +55,6 @@ export default function createFaceFromPoints(context, payload) {
   }
 
   withPreservedComponents(context, currentStoryGeometry.id, () => {
-
     newGeoms.forEach(newGeom => context.dispatch('replaceFacePoints', newGeom));
 
     // save the face and its descendent geometry
@@ -152,12 +151,14 @@ export function eraseSelection(points, context) {
 function storeFace({ vertices, edges }, target, context, existingFace) {
   const currentStoryGeometry = context.rootGetters['application/currentStoryGeometry'];
   const face = existingFace || new factory.Face([]);
+
   context.dispatch('replaceFacePoints', {
     face_id: face.id,
     geometry_id: currentStoryGeometry.id,
     vertices,
     edges,
   });
+
   context.dispatch(target.type === 'space' ? 'models/updateSpaceWithData' : 'models/updateShadingWithData', {
     [target.type]: target,
     face_id: face.id,
@@ -403,13 +404,21 @@ function replacementEdgeRefs(geometry, dyingEdgeId, newEdges) {
   return replaceEdgeRefs;
 }
 
+/**
+ * Returns a list of all the edges that need to be split (i.e. edges that are on top of one another)
+ *
+ * @param {*} geometry 
+ * @param {*} spacing 
+ * @returns 
+ */
 export function edgesToSplit(geometry, spacing) {
   const priorIterationEdges = [];
-  return _.compact(geometry.edges.map((edge) => {
-    let splittingVertices = geometryHelpers.splittingVerticesForEdgeId(edge.id, geometry, spacing);
-    if (!splittingVertices.length) {
+
+  function determineEdges(geometry, edge, splittingVertices) {
+    if (splittingVertices.length === 0) {
       return false;
     }
+
     const
       startpoint = geometryHelpers.vertexForId(edge.v1, geometry),
       endpoint = geometryHelpers.vertexForId(edge.v2, geometry);
@@ -432,6 +441,11 @@ export function edgesToSplit(geometry, spacing) {
       newEdges,
       replaceEdgeRefs,
     };
+  }
+
+  return _.compact(geometry.edges.map((edge) => {
+    const splittingVertices = geometryHelpers.splittingVerticesForEdgeId(edge, geometry, spacing);
+    return determineEdges(geometry, edge, splittingVertices);
   }));
 }
 
@@ -447,6 +461,7 @@ function splitEdges(context) {
     currentStoryGeometry = context.rootGetters['application/currentStoryGeometry'],
     currentProjectSpacing = context.rootState.project.grid.spacing,
     edgeChanges = edgesToSplit(currentStoryGeometry, currentProjectSpacing);
+
   edgeChanges.forEach(payload => context.commit({
     type: 'splitEdge',
     geometry_id: currentStoryGeometry.id,
